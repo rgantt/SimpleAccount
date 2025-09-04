@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(if [ -f README.md ])",
+      "Bash(else echo \"No README.md found\")",
+      "Bash(fi)",
+      "Bash(xcodebuild:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
