@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct WorkingSettingsView: View {
+struct SettingsView: View {
     @EnvironmentObject var store: TransactionStore
     @State private var showingExportSuccess = false
     @State private var showingExportError = false

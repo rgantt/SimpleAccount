@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct WorkingTransactionList: View {
+struct TransactionListView: View {
     @EnvironmentObject var store: TransactionStore
     @State private var searchText = ""
     @State private var showingAllTransactions = false

@@ -84,7 +84,7 @@ xcodebuild -scheme SimpleAccount -destination 'platform=iOS Simulator,id=2981B45
 
 ## Development Notes
 
-This app was originally built with SwiftData but migrated to NSUbiquitousKeyValueStore due to persistence reliability issues. The codebase has been cleaned of all legacy implementations, leaving only the active "Working" view hierarchy.
+This app was originally built with SwiftData but migrated to NSUbiquitousKeyValueStore due to persistence reliability issues. The codebase has been cleaned of all legacy implementations.
 
 ## License
 

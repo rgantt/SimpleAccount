@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct WorkingBalanceView: View {
+struct BalanceView: View {
     @EnvironmentObject var store: TransactionStore
     
     var body: some View {

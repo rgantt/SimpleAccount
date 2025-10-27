@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct WorkingTransactionEntry: View {
+struct TransactionEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var store: TransactionStore
     

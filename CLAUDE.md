@@ -50,12 +50,12 @@ The app uses **NSUbiquitousKeyValueStore + UserDefaults** for data persistence, 
 4. UI updates automatically when TransactionStore.transactions changes via @Published
 
 #### View Architecture
-The app uses only the "Working" prefix views (WorkingBalanceView, WorkingTransactionList, etc.). All legacy view iterations have been removed from the codebase:
-- **WorkingBalanceView**: Displays current balance with formatted currency
-- **WorkingTransactionList**: Shows transactions with search and pagination (50 limit)
-- **WorkingTransactionEntry**: Form for adding new transactions
+All legacy view iterations have been removed from the codebase. The current views are:
+- **BalanceView**: Displays current balance with formatted currency
+- **TransactionListView**: Shows transactions with search and pagination (50 limit)
+- **TransactionEntryView**: Form for adding new transactions
 - **EditTransactionView**: Form for editing existing transactions
-- **WorkingSettingsView**: Settings with SQLite export and statistics (includes ShareSheet helper)
+- **SettingsView**: Settings with SQLite export and statistics (includes ShareSheet helper)
 - **ReportsView**: Analytics with time filtering (Week, Month, Quarter, Year, All Time)
 - **SimpleCharts.swift**: Custom chart components (line, bar, pie)
 
@@ -91,7 +91,7 @@ The app requires proper entitlement configuration in SimpleAccount.entitlements:
 
 ### Development Notes
 - **SwiftData was abandoned** - All SwiftData models and services have been removed
-- **Clean codebase** - Legacy view iterations (BalanceView, SimpleBalanceView, etc.) have been deleted
+- **Clean codebase** - All legacy view iterations have been deleted; only the current production views remain
 - **Performance optimization** via transaction list pagination for large datasets
 - **Export functionality** creates professional SQLite databases with summary views
 - **UserDefaultsTransaction.swift** contains both the Transaction model and TransactionStore in a single file

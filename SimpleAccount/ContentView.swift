@@ -16,8 +16,8 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             NavigationStack {
                 VStack(spacing: 0) {
-                    WorkingBalanceView()
-                    WorkingTransactionList()
+                    BalanceView()
+                    TransactionListView()
                 }
                 .navigationTitle("Spending Money")
                 .toolbar {
@@ -35,7 +35,7 @@ struct ContentView: View {
                 Label("Balance", systemImage: "dollarsign.circle.fill")
             }
             .tag(0)
-            
+
             NavigationStack {
                 ReportsView()
             }
@@ -43,9 +43,9 @@ struct ContentView: View {
                 Label("Reports", systemImage: "chart.pie.fill")
             }
             .tag(1)
-            
+
             NavigationStack {
-                WorkingSettingsView()
+                SettingsView()
             }
             .tabItem {
                 Label("Settings", systemImage: "gear")
@@ -53,7 +53,7 @@ struct ContentView: View {
             .tag(2)
         }
         .sheet(isPresented: $showingTransactionEntry) {
-            WorkingTransactionEntry()
+            TransactionEntryView()
         }
     }
 }
