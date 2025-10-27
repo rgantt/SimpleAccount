@@ -16,6 +16,14 @@ struct Transaction: Codable, Identifiable {
         self.date = date
     }
     
+    init(id: UUID, date: Date, amount: Decimal, description: String, type: TxType) {
+        self.id = id
+        self.date = date
+        self.amount = amount
+        self.description = description
+        self.type = type
+    }
+    
     var signedAmount: Decimal {
         switch type {
         case .income, .sale:
@@ -55,20 +63,6 @@ enum TxType: String, Codable, CaseIterable {
     }
 }
 
-// Make Decimal Codable
-extension Decimal: Codable {
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let doubleValue = try container.decode(Double.self)
-        self.init(doubleValue)
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(NSDecimalNumber(decimal: self).doubleValue)
-    }
-}
-
 @MainActor
 class TransactionStore: ObservableObject {
     @Published var transactions: [Transaction] = []
@@ -90,6 +84,22 @@ class TransactionStore: ObservableObject {
     func deleteTransaction(_ transaction: Transaction) {
         transactions.removeAll { $0.id == transaction.id }
         saveTransactions()
+    }
+    
+    func updateTransaction(_ oldTransaction: Transaction, with newTransaction: Transaction) {
+        if let index = transactions.firstIndex(where: { $0.id == oldTransaction.id }) {
+            var updated = newTransaction
+            updated = Transaction(
+                id: oldTransaction.id,
+                date: newTransaction.date,
+                amount: newTransaction.amount,
+                description: newTransaction.description,
+                type: newTransaction.type
+            )
+            transactions[index] = updated
+            saveTransactions()
+            print("✅ UserDefaults: Updated transaction")
+        }
     }
     
     var currentBalance: Decimal {

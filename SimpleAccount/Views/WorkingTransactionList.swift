@@ -4,6 +4,7 @@ struct WorkingTransactionList: View {
     @EnvironmentObject var store: TransactionStore
     @State private var searchText = ""
     @State private var showingAllTransactions = false
+    @State private var editingTransaction: Transaction?
     
     private let maxDisplayedTransactions = 50
     
@@ -51,6 +52,18 @@ struct WorkingTransactionList: View {
                         .foregroundStyle(transaction.type == .expense ? .red : .primary)
                 }
                 .padding(.vertical, 4)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    editingTransaction = transaction
+                }
+                .swipeActions(edge: .leading) {
+                    Button {
+                        editingTransaction = transaction
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    .tint(.blue)
+                }
             }
             .onDelete(perform: deleteTransactions)
             
@@ -76,6 +89,9 @@ struct WorkingTransactionList: View {
                     description: Text("Add your first transaction to get started")
                 )
             }
+        }
+        .sheet(item: $editingTransaction) { transaction in
+            EditTransactionView(transaction: transaction)
         }
     }
     

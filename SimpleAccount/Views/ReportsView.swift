@@ -132,7 +132,7 @@ struct ReportsView: View {
                         Group {
                             switch selectedMetric {
                             case .balance:
-                                BalanceChart(transactions: filteredTransactions)
+                                BalanceChart(transactions: filteredTransactions, allTransactions: store.transactions)
                             case .income:
                                 IncomeExpenseChart(transactions: filteredTransactions)
                             case .trends:

@@ -2,31 +2,78 @@ import SwiftUI
 
 struct BalanceChart: View {
     let transactions: [Transaction]
-    
-    var balanceOverTime: [(date: Date, balance: Decimal)] {
+    let allTransactions: [Transaction]
+
+    var chartData: (balance: [(date: Date, balance: Decimal)], income: [(date: Date, income: Decimal)], expenses: [(date: Date, expenses: Decimal)]) {
         let sortedTransactions = transactions.sorted { $0.date < $1.date }
-        var runningBalance: Decimal = 0
+
+        // Calculate initial balance from all transactions before the filtered period
+        let initialBalance: Decimal
+        if let firstFilteredDate = sortedTransactions.first?.date {
+            initialBalance = allTransactions
+                .filter { $0.date < firstFilteredDate }
+                .reduce(Decimal.zero) { $0 + $1.signedAmount }
+        } else {
+            initialBalance = 0
+        }
+
+        var runningBalance: Decimal = initialBalance
+        var runningIncome: Decimal = 0
+        var runningExpenses: Decimal = 0
+
         var balancePoints: [(date: Date, balance: Decimal)] = []
-        
+        var incomePoints: [(date: Date, income: Decimal)] = []
+        var expensePoints: [(date: Date, expenses: Decimal)] = []
+
         for transaction in sortedTransactions {
             runningBalance += transaction.signedAmount
+
+            if transaction.type == .income || transaction.type == .sale {
+                runningIncome += transaction.amount
+            } else {
+                runningExpenses += transaction.amount
+            }
+
             balancePoints.append((date: transaction.date, balance: runningBalance))
+            incomePoints.append((date: transaction.date, income: runningIncome))
+            expensePoints.append((date: transaction.date, expenses: runningExpenses))
         }
-        
-        return balancePoints
+
+        return (balance: balancePoints, income: incomePoints, expenses: expensePoints)
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Balance Over Time")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Financial Trends")
+                    .font(.headline)
+                
+                Spacer()
+                
+                HStack(spacing: 16) {
+                    Label("Balance", systemImage: "circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                    Label("Income", systemImage: "circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                    Label("Expenses", systemImage: "circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+                .font(.caption2)
+            }
             
-            if balanceOverTime.isEmpty {
+            if chartData.balance.isEmpty {
                 Text("No data available")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                SimpleLineChart(data: balanceOverTime)
+                MultiLineChart(
+                    balanceData: chartData.balance,
+                    incomeData: chartData.income,
+                    expenseData: chartData.expenses
+                )
             }
         }
     }
@@ -82,50 +129,173 @@ struct TrendsChart: View {
     }
 }
 
-struct SimpleLineChart: View {
-    let data: [(date: Date, balance: Decimal)]
-    
+struct MultiLineChart: View {
+    let balanceData: [(date: Date, balance: Decimal)]
+    let incomeData: [(date: Date, income: Decimal)]
+    let expenseData: [(date: Date, expenses: Decimal)]
+
     var body: some View {
         GeometryReader { geometry in
+            let chartWidth = geometry.size.width - 100  // Increased for right Y-axis
+            let chartHeight = geometry.size.height - 50
+            let chartOriginX: CGFloat = 50
+            let chartOriginY: CGFloat = 10
+
             ZStack {
-            let width = geometry.size.width
-            let height = geometry.size.height
-            
-            if let minBalance = data.map(\.balance).min(),
-               let maxBalance = data.map(\.balance).max(),
-               let minDate = data.map(\.date).min(),
-               let maxDate = data.map(\.date).max() {
-                
-                let dateRange = maxDate.timeIntervalSince(minDate)
-                let balanceRange = maxBalance - minBalance
-                if balanceRange > 0 {
-                
-                Path { path in
-                    for (index, point) in data.enumerated() {
-                        let x = width * (point.date.timeIntervalSince(minDate) / dateRange)
-                        let balancePercent = (point.balance - minBalance) / balanceRange
-                        let y = height * (1 - NSDecimalNumber(decimal: balancePercent).doubleValue)
-                        
-                        if index == 0 {
-                            path.move(to: CGPoint(x: x, y: y))
-                        } else {
-                            path.addLine(to: CGPoint(x: x, y: y))
+                let allDates = balanceData.map(\.date)
+
+                if let minDate = allDates.min(),
+                   let maxDate = allDates.max(),
+                   !balanceData.isEmpty {
+
+                    // Calculate separate Y-axis ranges
+                    // Left Y-axis: Balance only
+                    let balanceValues = balanceData.map(\.balance)
+                    let minBalance = balanceValues.min() ?? 0
+                    let maxBalance = balanceValues.max() ?? 0
+                    let balanceRange = maxBalance - minBalance
+                    let balancePadding = balanceRange * 0.1
+                    let balanceMin = minBalance - balancePadding
+                    let balanceMax = maxBalance + balancePadding
+                    let balanceAxisRange = balanceMax - balanceMin
+
+                    // Right Y-axis: Income and Expenses (always starts at 0)
+                    let incomeExpenseValues = incomeData.map(\.income) + expenseData.map(\.expenses)
+                    let maxIncomeExpense = incomeExpenseValues.max() ?? 0
+                    let incomeExpensePadding = maxIncomeExpense * 0.1
+                    let incomeExpenseMin: Decimal = 0
+                    let incomeExpenseMax = maxIncomeExpense + incomeExpensePadding
+                    let incomeExpenseAxisRange = incomeExpenseMax - incomeExpenseMin
+
+                    let dateRange = maxDate.timeIntervalSince(minDate)
+
+                    // Background grid
+                    Path { path in
+                        // Horizontal grid lines
+                        for i in 0...4 {
+                            let y = chartOriginY + chartHeight * CGFloat(i) / 4
+                            path.move(to: CGPoint(x: chartOriginX, y: y))
+                            path.addLine(to: CGPoint(x: chartOriginX + chartWidth, y: y))
+                        }
+
+                        // Vertical grid lines
+                        for i in 0...4 {
+                            let x = chartOriginX + chartWidth * CGFloat(i) / 4
+                            path.move(to: CGPoint(x: x, y: chartOriginY))
+                            path.addLine(to: CGPoint(x: x, y: chartOriginY + chartHeight))
                         }
                     }
-                }
-                .stroke(Color.blue, lineWidth: 2)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+
+                    // Zero line for balance if zero is in range
+                    if balanceMin <= 0 && balanceMax >= 0 {
+                        let zeroY = chartOriginY + chartHeight * (1 - CGFloat(NSDecimalNumber(decimal: (0 - balanceMin) / balanceAxisRange).doubleValue))
+                        Path { path in
+                            path.move(to: CGPoint(x: chartOriginX, y: zeroY))
+                            path.addLine(to: CGPoint(x: chartOriginX + chartWidth, y: zeroY))
+                        }
+                        .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                    }
+
+                    // Balance line (using left Y-axis scale)
+                    if !balanceData.isEmpty && balanceAxisRange > 0 {
+                        Path { path in
+                            for (index, point) in balanceData.enumerated() {
+                                let x = chartOriginX + chartWidth * (point.date.timeIntervalSince(minDate) / dateRange)
+                                let y = chartOriginY + chartHeight * (1 - CGFloat(NSDecimalNumber(decimal: (point.balance - balanceMin) / balanceAxisRange).doubleValue))
+
+                                if index == 0 {
+                                    path.move(to: CGPoint(x: x, y: y))
+                                } else {
+                                    path.addLine(to: CGPoint(x: x, y: y))
+                                }
+                            }
+                        }
+                        .stroke(Color.blue, lineWidth: 3)
+                    }
+
+                    // Income line (using right Y-axis scale)
+                    if !incomeData.isEmpty && incomeExpenseAxisRange > 0 {
+                        Path { path in
+                            for (index, point) in incomeData.enumerated() {
+                                let x = chartOriginX + chartWidth * (point.date.timeIntervalSince(minDate) / dateRange)
+                                let y = chartOriginY + chartHeight * (1 - CGFloat(NSDecimalNumber(decimal: (point.income - incomeExpenseMin) / incomeExpenseAxisRange).doubleValue))
+
+                                if index == 0 {
+                                    path.move(to: CGPoint(x: x, y: y))
+                                } else {
+                                    path.addLine(to: CGPoint(x: x, y: y))
+                                }
+                            }
+                        }
+                        .stroke(Color.green, lineWidth: 2)
+                    }
+
+                    // Expenses line (using right Y-axis scale)
+                    if !expenseData.isEmpty && incomeExpenseAxisRange > 0 {
+                        Path { path in
+                            for (index, point) in expenseData.enumerated() {
+                                let x = chartOriginX + chartWidth * (point.date.timeIntervalSince(minDate) / dateRange)
+                                let y = chartOriginY + chartHeight * (1 - CGFloat(NSDecimalNumber(decimal: (point.expenses - incomeExpenseMin) / incomeExpenseAxisRange).doubleValue))
+
+                                if index == 0 {
+                                    path.move(to: CGPoint(x: x, y: y))
+                                } else {
+                                    path.addLine(to: CGPoint(x: x, y: y))
+                                }
+                            }
+                        }
+                        .stroke(Color.red, lineWidth: 2)
+                    }
+
+                    // Left Y-axis labels (Balance)
+                    ForEach([0, 1, 2, 3, 4], id: \.self) { i in
+                        let fraction = Double(i) / 4.0
+                        let range = NSDecimalNumber(decimal: balanceMax - balanceMin).doubleValue
+                        let maxValue = NSDecimalNumber(decimal: balanceMax).doubleValue
+                        let valueDouble = maxValue - range * fraction
+                        let yPosition = chartOriginY + chartHeight * CGFloat(i) / 4
+
+                        Text(NumberFormatter.currency.string(from: NSNumber(value: valueDouble)) ?? "$0")
+                            .font(.caption2)
+                            .foregroundStyle(.blue)
+                            .position(x: 25, y: yPosition)
+                    }
+
+                    // Right Y-axis labels (Income/Expenses)
+                    ForEach([0, 1, 2, 3, 4], id: \.self) { i in
+                        let fraction = Double(i) / 4.0
+                        let range = NSDecimalNumber(decimal: incomeExpenseMax - incomeExpenseMin).doubleValue
+                        let maxValue = NSDecimalNumber(decimal: incomeExpenseMax).doubleValue
+                        let valueDouble = maxValue - range * fraction
+                        let yPosition = chartOriginY + chartHeight * CGFloat(i) / 4
+
+                        Text(NumberFormatter.currency.string(from: NSNumber(value: valueDouble)) ?? "$0")
+                            .font(.caption2)
+                            .foregroundStyle(.green)
+                            .position(x: chartOriginX + chartWidth + 35, y: yPosition)
+                    }
+
+                    // X-axis date labels
+                    ForEach([0, 1, 2, 3, 4], id: \.self) { i in
+                        let xPosition = chartOriginX + chartWidth * CGFloat(i) / 4
+                        let dateInterval = dateRange * Double(i) / 4.0
+                        let labelDate = Date(timeInterval: dateInterval, since: minDate)
+
+                        Text(labelDate.formatted(.dateTime.month(.defaultDigits).day(.defaultDigits)))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .position(x: xPosition, y: chartOriginY + chartHeight + 20)
+                    }
+
                 } else {
-                    Text("Insufficient range")
+                    Text("Insufficient data")
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-            } else {
-                Text("Insufficient data")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
             }
         }
+        .frame(minHeight: 200)
     }
 }
 
